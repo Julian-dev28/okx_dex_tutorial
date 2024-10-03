@@ -1,0 +1,249 @@
+# Build a DEX Swap Application on EVM Network
+
+In this tutorial, we'll walk through the process of creating a simple Decentralized Exchange (DEX) swap application using Vite, React, and TypeScript. We'll focus on swapping ETH for USDC on the Ethereum network using the OKX DEX API.
+
+## Table of Contents
+
+1. [Project Setup](#1-project-setup)
+2. [Install Dependencies](#2-install-dependencies)
+3. [Create Environment Variables](#3-create-environment-variables)
+4. [Create API Helper Functions](#4-create-api-helper-functions)
+5. [Create Swap Component](#5-create-swap-component)
+6. [Implement Main App Component](#6-implement-main-app-component)
+7. [Run the Application](#7-run-the-application)
+
+## 1. Project Setup
+
+First, let's create a new Vite project with React and TypeScript:
+
+```bash
+npm create vite@latest dex-swap-app -- --template react-ts
+cd dex-swap-app
+```
+
+## 2. Install Dependencies
+
+Install the necessary dependencies:
+
+```bash
+npm install ethers@5 axios @types/node dotenv
+```
+
+## 3. Create Environment Variables
+
+Create a `.env` file in the root of your project:
+
+```env
+VITE_API_BASE_URL=https://www.okx.com/api/v5/dex/aggregator
+VITE_CHAIN_ID=1
+VITE_FROM_TOKEN_ADDRESS=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+VITE_TO_TOKEN_ADDRESS=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+VITE_USER_ADDRESS=YOUR_WALLET_ADDRESS
+VITE_PRIVATE_KEY=YOUR_PRIVATE_KEY
+VITE_API_KEY=YOUR_OKX_API_KEY
+VITE_SECRET_KEY=YOUR_OKX_SECRET_KEY
+VITE_PASSPHRASE=YOUR_OKX_PASSPHRASE
+```
+
+Replace the placeholder values with your actual information.
+
+## 4. Create API Helper Functions
+
+Create a new file `src/api/dexApi.ts`:
+
+```ts
+import axios from 'axios';
+import { ethers } from 'ethers';
+import CryptoJS from 'crypto-js';
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
+const apiKey = import.meta.env.VITE_API_KEY as string;
+const secretKey = import.meta.env.VITE_SECRET_KEY as string;
+const passphrase = import.meta.env.VITE_PASSPHRASE as string;
+
+const getSignature = (timestamp: string, method: string, requestPath: string) => {
+  const signString = `${timestamp}${method}${requestPath}`;
+  return CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(signString, secretKey));
+};
+
+const getHeaders = (method: string, requestPath: string) => {
+  const timestamp = new Date().toISOString();
+  return {
+    'Content-Type': 'application/json',
+    'OK-ACCESS-KEY': apiKey,
+    'OK-ACCESS-SIGN': getSignature(timestamp, method, requestPath),
+    'OK-ACCESS-TIMESTAMP': timestamp,
+    'OK-ACCESS-PASSPHRASE': passphrase,
+  };
+};
+
+export const getQuote = async (amount: string, fromTokenAddress: string, toTokenAddress: string) => {
+  const params = new URLSearchParams({
+    amount,
+    chainId: import.meta.env.VITE_CHAIN_ID,
+    fromTokenAddress,
+    toTokenAddress,
+  });
+  const requestPath = `/quote?${params.toString()}`;
+  const response = await axios.get(`${apiBaseUrl}${requestPath}`, {
+    headers: getHeaders('GET', requestPath),
+  });
+  return response.data;
+};
+
+export const getSwapData = async (amount: string, fromTokenAddress: string, toTokenAddress: string, userAddress: string) => {
+  const params = new URLSearchParams({
+    amount,
+    chainId: import.meta.env.VITE_CHAIN_ID,
+    fromTokenAddress,
+    toTokenAddress,
+    userWalletAddress: userAddress,
+    slippage: '0.03',
+  });
+  const requestPath = `/swap?${params.toString()}`;
+  const response = await axios.get(`${apiBaseUrl}${requestPath}`, {
+    headers: getHeaders('GET', requestPath),
+  });
+  return response.data;
+};
+
+export const sendSwapTransaction = async (swapData: any) => {
+  const provider = new ethers.providers.JsonRpcProvider('https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID');
+  const signer = new ethers.Wallet(import.meta.env.VITE_PRIVATE_KEY as string, provider);
+
+  const tx = await signer.sendTransaction({
+    to: swapData.to,
+    data: swapData.data,
+    value: ethers.BigNumber.from(swapData.value),
+    gasLimit: ethers.BigNumber.from(swapData.gas).mul(3).div(2),
+    gasPrice: ethers.BigNumber.from(swapData.gasPrice).mul(3).div(2),
+  });
+
+  return await tx.wait();
+};
+```
+
+## 5. Create Swap Component
+
+Create a new file `src/components/Swap.tsx`:
+
+```tsx
+import React, { useState } from 'react';
+import { getQuote, getSwapData, sendSwapTransaction } from '../api/dexApi';
+
+const Swap: React.FC = () => {
+  const [amount, setAmount] = useState('');
+  const [quoteData, setQuoteData] = useState<any>(null);
+  const [swapData, setSwapData] = useState<any>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  const handleQuote = async () => {
+    try {
+      const quote = await getQuote(
+        amount,
+        import.meta.env.VITE_FROM_TOKEN_ADDRESS,
+        import.meta.env.VITE_TO_TOKEN_ADDRESS
+      );
+      setQuoteData(quote.data[0]);
+    } catch (error) {
+      console.error('Error fetching quote:', error);
+    }
+  };
+
+  const handleSwap = async () => {
+    try {
+      const swap = await getSwapData(
+        amount,
+        import.meta.env.VITE_FROM_TOKEN_ADDRESS,
+        import.meta.env.VITE_TO_TOKEN_ADDRESS,
+        import.meta.env.VITE_USER_ADDRESS
+      );
+      setSwapData(swap.data[0]);
+    } catch (error) {
+      console.error('Error fetching swap data:', error);
+    }
+  };
+
+  const handleSendTransaction = async () => {
+    try {
+      const receipt = await sendSwapTransaction(swapData.tx);
+      setTxHash(receipt.transactionHash);
+    } catch (error) {
+      console.error('Error sending transaction:', error);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Swap ETH for USDC</h2>
+      <input
+        type="text"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="Amount in ETH"
+      />
+      <button onClick={handleQuote}>Get Quote</button>
+      {quoteData && (
+        <div>
+          <p>Estimated USDC: {quoteData.toTokenAmount}</p>
+          <button onClick={handleSwap}>Prepare Swap</button>
+        </div>
+      )}
+      {swapData && (
+        <div>
+          <p>Swap ready. Click to send transaction.</p>
+          <button onClick={handleSendTransaction}>Send Transaction</button>
+        </div>
+      )}
+      {txHash && <p>Transaction sent! Hash: {txHash}</p>}
+    </div>
+  );
+};
+
+export default Swap;
+```
+
+## 6. Implement Main App Component
+
+Update `src/App.tsx`:
+
+```tsx
+import React from 'react';
+import Swap from './components/Swap';
+
+const App: React.FC = () => {
+  return (
+    <div className="App">
+      <h1>DEX Swap Application</h1>
+      <Swap />
+    </div>
+  );
+};
+
+export default App;
+```
+
+## 7. Run the Application
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Your DEX swap application should now be running on `http://localhost:5173`.
+
+## Conclusion
+
+In this tutorial, we have created a simple DEX swap application using Vite, React, and TypeScript. The application allows users to get quotes for swapping ETH to USDC and execute the swap transaction.
+
+Remember to handle errors properly, add more user feedback, and implement proper security measures before using this in a production environment. Always be cautious when dealing with real cryptocurrencies and private keys.
+
+```ts
+export const meta = {
+  title: 'Build a DEX Swap Application on EVM Network',
+  description: 'A tutorial on creating a simple DEX swap application using Vite, React, and TypeScript',
+  date: '2023-05-10',
+  tags: ['react', 'typescript', 'dex', 'ethereum', 'vite']
+}
+```

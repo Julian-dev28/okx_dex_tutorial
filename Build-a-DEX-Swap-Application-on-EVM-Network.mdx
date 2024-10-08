@@ -1,35 +1,73 @@
 # Build a DEX Swap Application on EVM Network
 
-In this tutorial, we'll walk through the process of creating a simple Decentralized Exchange (DEX) swap application using Vite, React, and TypeScript. We'll focus on swapping ETH for USDC on the Ethereum network using the OKX DEX API.
+In this comprehensive tutorial, we'll walk through the entire process of creating a simple Decentralized Exchange (DEX) swap application using Vite, React, and TypeScript. We'll focus on swapping ETH for USDC on the Ethereum network using the OKX DEX API.
 
 ## Table of Contents
 
-1. [Project Setup](#1-project-setup)
-2. [Install Dependencies](#2-install-dependencies)
-3. [Create Environment Variables](#3-create-environment-variables)
-4. [Create API Helper Functions](#4-create-api-helper-functions)
-5. [Create Swap Component](#5-create-swap-component)
-6. [Implement Main App Component](#6-implement-main-app-component)
-7. [Run the Application](#7-run-the-application)
+1. [Developer Portal Setup](#1-developer-portal-setup)
+2. [Project Setup](#2-project-setup)
+3. [Install Dependencies](#3-install-dependencies)
+4. [Create Environment Variables](#4-create-environment-variables)
+5. [Create API Helper Functions](#5-create-api-helper-functions)
+6. [Create Swap Component](#6-create-swap-component)
+7. [Implement Main App Component](#7-implement-main-app-component)
+8. [Run the Application](#8-run-the-application)
 
-## 1. Project Setup
+## 1. Developer Portal Setup
 
-First, let's create a new Vite project with React and TypeScript:
+Before we start coding, we need to set up our developer account and generate the necessary API keys.
+
+### Step 1: Create/log in to your account
+
+1. Navigate to the OKX website and click on the 'developer portal' under the navigation bar 'developer center'.
+2. Click 'Connect Wallet' to create or log in to an account.
+3. Select the wallet you want to connect to. OKX Wallet is recommended for connection.
+4. After selecting the wallet, click 'Verify'. A window will pop up in your wallet. Click 'Signature' in your wallet.
+
+Congrats! You have successfully created an account and are logged into the developer management platform.
+
+### Step 2: Create a new project
+
+1. To create a new project, enter the project name and project description (optional), then click the 'Confirm' button to create a new project.
+2. After creating a new project, you can see the details of the project under the 'Project' option.
+3. If you want to create another project, click 'Create a new project'.
+
+### Step 3: Generate API keys
+
+Before generating API keys, let's understand some key terms:
+
+- API key: Provides a unique identifier for the application or user to interact with the API.
+- Secret Key: Works with API keys to provide additional security by adding a security token.
+- Passphrase: Used to encrypt Secret keys on the OKX OS server to provide additional security. Passphrase is also used to view Secret keys and modify API information.
+
+To generate a new API key:
+
+1. Click the 'Manage' button in the project where you want to create the API key.
+2. Click the 'Create API key' button.
+3. Enter the name of the API key and Passphrase, click 'Create' to generate the corresponding API key.
+
+Important: The Passphrase is required to use the API. Once the Passphrase is lost, the API key will no longer be available. Make sure to remember the passphrase.
+
+Congrats! You have successfully created the API key. Keep these credentials safe as we'll use them in our application.
+
+## 2. Project Setup
+
+Now that we have our API credentials, let's set up our project. First, we'll create a new Vite project with React and TypeScript:
 
 ```bash
 npm create vite@latest dex-swap-app -- --template react-ts
 cd dex-swap-app
 ```
 
-## 2. Install Dependencies
+## 3. Install Dependencies
 
 Install the necessary dependencies:
 
 ```bash
-npm install ethers@5 axios @types/node dotenv
+npm install ethers@5 axios @types/node dotenv crypto-js
 ```
 
-## 3. Create Environment Variables
+## 4. Create Environment Variables
 
 Create a `.env` file in the root of your project:
 
@@ -45,9 +83,9 @@ VITE_SECRET_KEY=YOUR_OKX_SECRET_KEY
 VITE_PASSPHRASE=YOUR_OKX_PASSPHRASE
 ```
 
-Replace the placeholder values with your actual information.
+Replace the placeholder values with your actual information from the Developer Portal setup.
 
-## 4. Create API Helper Functions
+## 5. Create API Helper Functions
 
 Create a new file `src/api/dexApi.ts`:
 
@@ -123,7 +161,7 @@ export const sendSwapTransaction = async (swapData: any) => {
 };
 ```
 
-## 5. Create Swap Component
+## 6. Create Swap Component
 
 Create a new file `src/components/Swap.tsx`:
 
@@ -203,7 +241,7 @@ const Swap: React.FC = () => {
 export default Swap;
 ```
 
-## 6. Implement Main App Component
+## 7. Implement Main App Component
 
 Update `src/App.tsx`:
 
@@ -223,7 +261,7 @@ const App: React.FC = () => {
 export default App;
 ```
 
-## 7. Run the Application
+## 8. Run the Application
 
 Start the development server:
 
@@ -235,15 +273,13 @@ Your DEX swap application should now be running on `http://localhost:5173`.
 
 ## Conclusion
 
-In this tutorial, we have created a simple DEX swap application using Vite, React, and TypeScript. The application allows users to get quotes for swapping ETH to USDC and execute the swap transaction.
+In this comprehensive tutorial, we've walked through the entire process of setting up a DEX swap application, from creating a developer account and generating API keys to implementing the swap functionality using Vite, React, and TypeScript.
 
 Remember to handle errors properly, add more user feedback, and implement proper security measures before using this in a production environment. Always be cautious when dealing with real cryptocurrencies and private keys.
 
-```ts
 export const meta = {
   title: 'Build a DEX Swap Application on EVM Network',
-  description: 'A tutorial on creating a simple DEX swap application using Vite, React, and TypeScript',
+  description: 'A comprehensive tutorial on creating a DEX swap application using Vite, React, and TypeScript, including developer portal setup',
   date: '2023-05-10',
-  tags: ['react', 'typescript', 'dex', 'ethereum', 'vite']
+  tags: ['react', 'typescript', 'dex', 'ethereum', 'vite', 'okx']
 }
-```
